@@ -228,6 +228,11 @@
         zoom: 0, // starting zoom
       });
 
+      map.touchPitch.disable();
+      map.touchZoomRotate.disableRotation();
+      map.dragRotate.disable();
+      map.keyboard.disableRotation();
+      map.showTileBoundaries = true;
       map.addControl(new maplibregl.NavigationControl());
 
       layers.forEach(([id, r, g, b]) => {
