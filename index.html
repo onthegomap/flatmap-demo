@@ -234,7 +234,11 @@
       map.dragRotate.disable();
       map.keyboard.disableRotation();
       map.showTileBoundaries = true;
-      map.addControl(new maplibregl.NavigationControl());
+      map.addControl(
+        new maplibregl.NavigationControl({
+          showCompass: false,
+        })
+      );
 
       layers.forEach(([id, r, g, b]) => {
         document.getElementById("layers").appendChild(
