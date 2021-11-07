@@ -32,6 +32,11 @@
         top: 0;
         left: 0;
       }
+      #map, #map canvas {
+        user-select: none;
+        -webkit-user-select: none !important;
+        -webkit-touch-callout: none !important;
+      }
       .not-frozen canvas {
         cursor: pointer;
       }
@@ -346,10 +351,11 @@
       map.on("touchstart", (e) => {
         touch = true;
         clearTimeout(timeout);
+        clearTimeout(clickTimeout);
         timeout = setTimeout(() => (touch = false), 1000);
       });
       map.on("mousemove", (e) => {
-        if (frozen) return;
+        if (frozen || touch) return;
         showPopup(e);
       });
       map.on("mouseout", (e) => {
@@ -358,8 +364,26 @@
         }
       });
       document.documentElement.className = "not-frozen";
-      map.on("click", () => {
-        toggleFrozen();
+      var clickTimeout = null;
+      map.on('move', () => {
+        clearTimeout(clickTimeout);
+      });
+      map.on("click", (e) => {
+        if (touch) {
+          clearTimeout(clickTimeout);
+          if (frozen) {
+            toggleFrozen();
+          } else {
+            clickTimeout = setTimeout(() => {
+              if (!frozen) {
+                showPopup(e);
+              }
+              toggleFrozen();
+            }, 300);
+          }
+        } else {
+          toggleFrozen();
+        }
       });
       window.addEventListener("keydown", (e) => {
         if (e.key === "f") {
