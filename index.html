@@ -31,11 +31,12 @@
         width: calc(100% - 300px);
         top: 0;
         left: 0;
+        position: relative;
       }
       #map, #map canvas {
         user-select: none;
-        -webkit-user-select: none !important;
-        -webkit-touch-callout: none !important;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
       }
       .not-frozen canvas {
         cursor: pointer;
@@ -120,15 +121,45 @@
       .maplibregl-ctrl-attrib.maplibregl-compact {
         min-height: 24px;
       }
+      #warning {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+        pointer-events: none;
+        background-color: rgba(0, 0, 0, 0.1);
+        padding: 1em;
+        font-size: 16px;
+        text-align: center;
+      }
+      #warning a {
+        pointer-events: initial;
+        user-select: initial;
+        -webkit-user-select: initial;
+        -webkit-touch-callout: initial;
+      }
+      #warning.visible {
+        display: flex;
+      }
     </style>
   </head>
   <body>
-    <div id="map"></div>
+    <div id="map">
+      <div id="warning">
+        <div>This demo only has zoom-level 5-14 tiles for <a href="#6.46/41.672/-71.728">Southern New England</a></div>
+      </div>
+    </div>
     <div id="info">
       <h1>Flatmap Demo</h1>
       <p>
         These vector tiles are created by the
-        <a href="https://github.com/onthegomap/flatmap">Flatmap</a> project. It
+        <a href="https://github.com/onthegomap/flatmap">Flatmap</a> project. The demo
         has z0-4 for the <a href="#0/0/0">world</a> and z5-14 for
         <a href="#6.46/41.672/-71.728">Southern New England</a>, for example see
         <a href="#13.08/42.35474/-71.06597">Boston</a>.
@@ -162,6 +193,7 @@
         ["place", 242, 14, 147],
         ["poi", 59, 181, 10],
       ];
+      var warning = document.getElementById('warning');
       var map = new maplibregl.Map({
         container: "map",
         hash: true,
@@ -365,8 +397,37 @@
       });
       document.documentElement.className = "not-frozen";
       var clickTimeout = null;
+      var dataBounds = new maplibregl.LngLatBounds([ -73.6346, 41.1055, -69.5464, 42.9439 ]);
+      function dataBoundsAtZoom() {
+        var zoom = Math.max(0, Math.min(14, Math.floor(map.getZoom())));
+        var mult = Math.pow(2, zoom);
+        var southWest = maplibregl.MercatorCoordinate.fromLngLat(dataBounds.getSouthWest());
+        southWest.x = Math.floor(mult * southWest.x) / mult;
+        southWest.y = Math.ceil(mult * southWest.y) / mult;
+        var northEast = maplibregl.MercatorCoordinate.fromLngLat(dataBounds.getNorthEast());
+        northEast.x = Math.ceil(mult * northEast.x) / mult;
+        northEast.y = Math.floor(mult * northEast.y) / mult;
+        return new maplibregl.LngLatBounds(southWest.toLngLat(), northEast.toLngLat());
+      }
+      var wasVisible = true;
+      function checkBounds() {
+        var bounds = map.getBounds();
+        var data = dataBoundsAtZoom();
+        var visible = map.getZoom() < 5 || !(bounds.getWest() > data.getEast() ||
+          bounds.getEast() < data.getWest() ||
+          bounds.getSouth() > data.getNorth() ||
+          bounds.getNorth() < data.getSouth());
+        if (wasVisible !== visible) {
+          wasVisible = visible;
+          warning.className = visible ? '' : 'visible';
+        }
+      }
       map.on('move', () => {
         clearTimeout(clickTimeout);
+        checkBounds();
+      });
+      map.once('load', () => {
+        checkBounds();
       });
       map.on("click", (e) => {
         if (touch) {
